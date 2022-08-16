@@ -16,11 +16,14 @@
 
 package com.vlkan.rfos;
 
-import java.io.File;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.TimeZone;
 
 /**
  * Creates file names for rotated files to be moved to.
@@ -189,13 +192,12 @@ public class RotatingFilePattern {
      *
      * @return a file, where the name is formatted by this pattern and the given instant
      */
-    public File create(Instant instant) {
+    public String create(Instant instant) {
         StringBuilder pathNameBuilder = new StringBuilder();
         for (Field field : fields) {
             field.render(pathNameBuilder, instant);
         }
-        String pathName = pathNameBuilder.toString();
-        return new File(pathName);
+        return pathNameBuilder.toString();
     }
 
     /**

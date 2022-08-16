@@ -89,7 +89,6 @@ class DailyRotationPolicyTest {
         RotatingFilePattern filePattern = Mockito.mock(RotatingFilePattern.class);
         RotationConfig config = RotationConfig
                 .builder()
-                .file(file)
                 .filePattern(filePattern)
                 .clock(clock)
                 .executorService(executorService)
@@ -104,37 +103,30 @@ class DailyRotationPolicyTest {
         policy.start(rotatable);
 
         // Verify the 1st execution.
-        Mockito
-                .verify(executorService)
-                .schedule(
-                        Mockito.any(Runnable.class),
+        Mockito.verify(executorService)
+                .schedule( Mockito.any(Runnable.class),
                         Mockito.eq(waitPeriod1Millis),
                         Mockito.same(TimeUnit.MILLISECONDS));
 
         // Verify the 1st rotation.
-        Mockito
-                .verify(rotatable)
+        Mockito.verify(rotatable)
                 .rotate(Mockito.same(policy), Mockito.eq(midnight1));
 
         // Verify the 2nd execution.
-        Mockito
-                .verify(executorService, Mockito.atLeastOnce())
-                .schedule(
-                        Mockito.any(Runnable.class),
+        Mockito.verify(executorService, Mockito.atLeastOnce())
+                .schedule( Mockito.any(Runnable.class),
                         Mockito.eq(waitPeriod2Millis),
                         Mockito.same(TimeUnit.MILLISECONDS));
 
         // Verify the 2nd rotation.
-        Mockito
-                .verify(rotatable)
+        Mockito.verify(rotatable)
                 .rotate(Mockito.same(policy), Mockito.eq(midnight2));
 
         // Close the policy.
         policy.stop();
 
         // Verify the task cancellation.
-        Mockito
-                .verify(scheduledFuture)
+        Mockito.verify(scheduledFuture)
                 .cancel(Mockito.same(true));
 
     }

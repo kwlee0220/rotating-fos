@@ -19,18 +19,16 @@ package com.vlkan.rfos;
 import java.io.IOException;
 import java.io.OutputStream;
 
-class ByteCountingOutputStream extends OutputStream {
-
+public class ByteCountingOutputStream extends OutputStream {
     private final OutputStream parent;
-
     private long size;
 
-    ByteCountingOutputStream(OutputStream parent, long size) {
+    public ByteCountingOutputStream(OutputStream parent, long size) {
         this.parent = parent;
         this.size = size;
     }
 
-    long size() {
+    public long size() {
         return size;
     }
 

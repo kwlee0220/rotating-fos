@@ -1,0 +1,100 @@
+apply plugin: 'java-library'
+
+group = 'etri'
+version = 'v0.0.0'
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+[compileJava,compileTestJava]*.options*.encoding = 'UTF-8'
+
+ext {
+	slf4j_version = '1.7.36'
+	log4j_version = '2.18.0'
+	junit_version = '5.9.0'
+	assertj_version = '3.23.1'
+	mockito_version = '4.6.1'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+	api project(":utils")
+	
+	implementation "org.slf4j:slf4j-api:${slf4j_version}"
+	
+	testImplementation "org.apache.logging.log4j:log4j-slf4j-impl:${log4j_version}"
+	testImplementation "org.junit.jupiter:junit-jupiter-engine:${junit_version}"
+	testImplementation "org.assertj:assertj-core:${assertj_version}"
+	testImplementation "org.mockito:mockito-core:${mockito_version}"
+}
+
+task sourceJar(type: Jar) {
+	classifier 'sources'
+	from sourceSets.main.allSource
+}
+
+javadoc {
+	options.encoding = 'UTF-8'
+	options.links("https://docs.oracle.com/javase/8/docs/api/")
+}
+task javadocJar(type: Jar) {
+	classifier 'javadoc'
+	from javadoc.destinationDir
+}
+
+artifacts {
+	archives sourceJar
+	archives javadocJar
+}
+
+apply plugin: 'maven-publish'
+publishing {
+	publications {
+		commonGrpc(MavenPublication) {
+			from components.java
+			
+			artifact sourceJar
+			artifact javadocJar
+		}
+	}
+}
+
+apply plugin: 'eclipse'
+eclipse {
+	classpath {
+		file {
+			withXml {
+				def node = it.asNode()
+				node.appendNode('classpathentry', [kind: 'output', path: 'classes'])
+			}
+			
+			whenMerged { cp ->
+				Map entryByPath = cp.entries.groupBy { entry -> entry.path }
+				entryByPath.each { key, values ->
+					if ( values.size() > 1 ) {
+            			def entry = values.first()
+            			if ( entry.kind == 'src' ) {
+            				entry.includes = []
+            				entry.excludes = []
+            			}
+            			int index = cp.entries.indexOf entry
+            			cp.entries.removeAll values
+            			cp.entries.add index, entry
+					}
+				}
+				cp.entries.each { entry ->
+					if ( entry.kind == 'src' && entry.hasProperty('output') ) {
+						if ( entry.path.startsWith("src/test/") ) {
+							entry.output = 'test_classes'
+						}
+						else {
+							entry.output = 'classes'
+						}
+					}
+				}
+			}
+		}
+	}
+}

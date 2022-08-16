@@ -16,13 +16,15 @@
 
 package com.vlkan.rfos;
 
-import com.vlkan.rfos.policy.RotationPolicy;
+import java.io.OutputStream;
+import java.time.Instant;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.OutputStream;
-import java.time.Instant;
+import com.vlkan.rfos.policy.RotationPolicy;
+
+import utils.io.FileProxy;
 
 /**
  * Callback logging every intercepted operation.
@@ -57,12 +59,12 @@ public class LoggingRotationCallback implements RotationCallback {
     }
 
     @Override
-    public void onSuccess(RotationPolicy policy, Instant instant, File file) {
+    public void onSuccess(RotationPolicy policy, Instant instant, FileProxy file) {
         LOGGER.debug("rotation success {policy={}, instant={}, file={}}", policy, instant, file);
     }
 
     @Override
-    public void onFailure(RotationPolicy policy, Instant instant, File file, Exception error) {
+    public void onFailure(RotationPolicy policy, Instant instant, FileProxy file, Exception error) {
         String message = String.format("rotation failure {policy=%s, instant=%s, file=%s}", policy, instant, file);
         LOGGER.error(message, error);
     }

@@ -16,11 +16,6 @@
 
 package com.vlkan.rfos;
 
-import com.vlkan.rfos.policy.TimeBasedRotationPolicy;
-import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -31,6 +26,14 @@ import java.util.LinkedList;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.stream.Collectors;
+
+import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.vlkan.rfos.policy.TimeBasedRotationPolicy;
+
+import utils.io.LocalFile;
 
 public enum SchedulerShutdownTestApp {;
 
@@ -72,7 +75,7 @@ public enum SchedulerShutdownTestApp {;
                         + "-"
                         + SchedulerShutdownTestApp.class.getSimpleName();
         File tmpDir = new File(System.getProperty("java.io.tmpdir"));
-        File file = new File(tmpDir, filePrefix + ".log");
+        LocalFile file = LocalFile.of(new File(tmpDir, filePrefix + ".log"));
         String fileName = file.getAbsolutePath();
         String fileNamePattern = new File(tmpDir, filePrefix + "-%d{yyyy}.log").getAbsolutePath();
 
@@ -83,7 +86,6 @@ public enum SchedulerShutdownTestApp {;
         RotationCallback callback = Mockito.spy(LoggingRotationCallback.getInstance());
         RotationConfig config = RotationConfig
                 .builder()
-                .file(fileName)
                 .filePattern(fileNamePattern)
                 .policy(policy)
                 .callback(callback)
@@ -91,7 +93,7 @@ public enum SchedulerShutdownTestApp {;
 
         // Create the stream.
         LOGGER.info("creating the stream");
-        RotatingFileOutputStream stream = new RotatingFileOutputStream(config);
+        RotatingFileOutputStream stream = new RotatingFileOutputStream(file, config);
 
         // Write something to stream to avoid rotation being skipped.
         stream.write(filePrefix.getBytes(StandardCharsets.US_ASCII));

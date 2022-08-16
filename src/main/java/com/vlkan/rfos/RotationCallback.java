@@ -16,11 +16,12 @@
 
 package com.vlkan.rfos;
 
-import com.vlkan.rfos.policy.RotationPolicy;
-
-import java.io.File;
 import java.io.OutputStream;
 import java.time.Instant;
+
+import com.vlkan.rfos.policy.RotationPolicy;
+
+import utils.io.FileProxy;
 
 /**
  * Callback intercepting {@link RotatingFileOutputStream} operations.
@@ -30,7 +31,6 @@ import java.time.Instant;
  * </p>
  */
 public interface RotationCallback {
-
     /**
      * Invoked by {@link RotatingFileOutputStream} at the beginning of every
      * {@link RotatingFileOutputStream#rotate(RotationPolicy, Instant)} call.
@@ -79,7 +79,7 @@ public interface RotationCallback {
      * @param instant   the trigger instant
      * @param file      the rotated file
      */
-    void onSuccess(RotationPolicy policy, Instant instant, File file);
+    void onSuccess(RotationPolicy policy, Instant instant, FileProxy file);
 
     /**
      * Invoked by {@link RotatingFileOutputStream} after a failed rotation
@@ -92,6 +92,6 @@ public interface RotationCallback {
      * @param file      the rotated file
      * @param error     the failure
      */
-    void onFailure(RotationPolicy policy, Instant instant, File file, Exception error);
+    void onFailure(RotationPolicy policy, Instant instant, FileProxy file, Exception error);
 
 }

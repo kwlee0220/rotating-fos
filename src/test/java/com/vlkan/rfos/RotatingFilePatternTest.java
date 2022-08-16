@@ -16,8 +16,8 @@
 
 package com.vlkan.rfos;
 
-import org.assertj.core.api.ThrowableAssert;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.time.Instant;
@@ -26,8 +26,10 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.assertj.core.api.ThrowableAssert;
+import org.junit.jupiter.api.Test;
+
+import utils.io.LocalFile;
 
 class RotatingFilePatternTest {
 
@@ -77,13 +79,14 @@ class RotatingFilePatternTest {
                         formatInstant("yyyyMMdd", instant))));
         for (String pattern : fileByPattern.keySet()) {
             File expectedFile = fileByPattern.get(pattern);
-            File actualFile = RotatingFilePattern
-                    .builder()
-                    .pattern(pattern)
-                    .locale(Locale.US)
-                    .timeZoneId(UtcHelper.ZONE_ID)
-                    .build()
-                    .create(instant);
+            String actualFilePath = RotatingFilePattern
+					                    .builder()
+					                    .pattern(pattern)
+					                    .locale(Locale.US)
+					                    .timeZoneId(UtcHelper.ZONE_ID)
+					                    .build()
+					                    .create(instant);
+            File actualFile = LocalFile.of(actualFilePath).getFile();
             assertThat(actualFile).as("pattern=%s", pattern).isEqualTo(expectedFile);
         }
     }

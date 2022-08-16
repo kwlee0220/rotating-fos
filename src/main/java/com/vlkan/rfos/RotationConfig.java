@@ -16,9 +16,6 @@
 
 package com.vlkan.rfos;
 
-import com.vlkan.rfos.policy.RotationPolicy;
-
-import java.io.File;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -27,32 +24,27 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 
+import com.vlkan.rfos.policy.RotationPolicy;
+
+
 /**
  * Configuration for constructing {@link RotatingFileOutputStream} instances.
  */
 public class RotationConfig {
-
     private static final boolean DEFAULT_APPEND = true;
-
     private static final boolean DEFAULT_COMPRESS = false;
-
     private static final Clock DEFAULT_CLOCK = SystemClock.getInstance();
-
-    private static final Set<RotationCallback> DEFAULT_CALLBACKS =
-            Collections.singleton(LoggingRotationCallback.getInstance());
-
+    private static final Set<RotationCallback> DEFAULT_CALLBACKS
+    							= Collections.singleton(LoggingRotationCallback.getInstance());
     private static final int DEFAULT_MAX_BACKUP_COUNT = -1;
 
     private enum DefaultExecutorServiceHolder {;
-
         private static final ScheduledExecutorService INSTANCE = createDefaultExecutorService();
 
         private static ScheduledThreadPoolExecutor createDefaultExecutorService() {
             int threadCount = readDefaultThreadCount();
-            return new ScheduledThreadPoolExecutor(
-                    threadCount,
+            return new ScheduledThreadPoolExecutor(threadCount,
                     new ThreadFactory() {
-
                         private int threadCount = 0;
 
                         @Override
@@ -62,7 +54,6 @@ public class RotationConfig {
                             thread.setDaemon(true);
                             return thread;
                         }
-
                     });
         }
 
@@ -72,29 +63,18 @@ public class RotationConfig {
                     ? Integer.parseInt(threadCountProperty)
                     : Runtime.getRuntime().availableProcessors();
         }
-
     }
 
-    private final File file;
-
     private final RotatingFilePattern filePattern;
-
     private final ScheduledExecutorService executorService;
-
     private final Set<RotationPolicy> policies;
-
     private final boolean append;
-
     private final boolean compress;
-
     private final int maxBackupCount;
-
     private final Clock clock;
-
     private final Set<RotationCallback> callbacks;
 
     private RotationConfig(Builder builder) {
-        this.file = builder.file;
         this.filePattern = builder.filePattern;
         this.executorService = builder.executorService;
         this.policies = Collections.unmodifiableSet(builder.policies);
@@ -103,13 +83,6 @@ public class RotationConfig {
         this.maxBackupCount = builder.maxBackupCount;
         this.clock = builder.clock;
         this.callbacks = Collections.unmodifiableSet(builder.callbacks);
-    }
-
-    /**
-     * @return the file to be written by the stream
-     */
-    public File getFile() {
-        return file;
     }
 
     /**
@@ -281,7 +254,6 @@ public class RotationConfig {
         return append == that.append &&
                 compress == that.compress &&
 				maxBackupCount == that.maxBackupCount &&
-                Objects.equals(file, that.file) &&
                 Objects.equals(filePattern, that.filePattern) &&
                 Objects.equals(executorService, that.executorService) &&
                 Objects.equals(policies, that.policies) &&
@@ -292,7 +264,6 @@ public class RotationConfig {
     @Override
     public int hashCode() {
         return Objects.hash(
-                file,
                 filePattern,
                 executorService,
                 policies,
@@ -305,7 +276,7 @@ public class RotationConfig {
 
     @Override
     public String toString() {
-        return String.format("RotationConfig{file=%s}", file);
+        return String.format("RotationConfig{pattern=%s}", this.filePattern);
     }
 
     /**
@@ -329,30 +300,16 @@ public class RotationConfig {
      * The rotation configuration builder.
      */
     public static class Builder {
-
-        private File file;
-
         private RotatingFilePattern filePattern;
-
         private ScheduledExecutorService executorService;
-
         private Set<RotationPolicy> policies;
-
         private boolean append = DEFAULT_APPEND;
-
         private boolean compress = DEFAULT_COMPRESS;
-
         private int maxBackupCount = DEFAULT_MAX_BACKUP_COUNT;
-
         private Clock clock = DEFAULT_CLOCK;
-
-        private Set<RotationCallback> callbacks =
-                // We need a defensive copy for Set#add() in
-                // callback(RotationCallback) setter.
-                new LinkedHashSet<>(DEFAULT_CALLBACKS);
+        private Set<RotationCallback> callbacks = new LinkedHashSet<>(DEFAULT_CALLBACKS);
 
         private Builder(RotationConfig config) {
-            this.file = config.file;
             this.filePattern = config.filePattern;
             this.executorService = config.executorService;
             this.policies = config.policies;
@@ -364,31 +321,6 @@ public class RotationConfig {
         }
 
         private Builder() {}
-
-        /**
-         * Sets the file to be written by the stream.
-         *
-         * @param file the file to be written by the stream
-         *
-         * @return this builder
-         */
-        public Builder file(File file) {
-            this.file = Objects.requireNonNull(file, "file");
-            return this;
-        }
-
-        /**
-         * Sets the file to be written by the stream.
-         *
-         * @param fileName the file to be written by the stream
-         *
-         * @return this builder
-         */
-        public Builder file(String fileName) {
-            Objects.requireNonNull(fileName, "fileName");
-            this.file = new File(fileName);
-            return this;
-        }
 
         /**
          * Sets the file pattern to be used while rotating files, if set;
@@ -600,7 +532,6 @@ public class RotationConfig {
         }
 
         private void validate() {
-            Objects.requireNonNull(file, "file");
             if (maxBackupCount > 0) {
                 String conflictingField = null;
                 if (filePattern != null) {
