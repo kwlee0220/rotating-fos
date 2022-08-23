@@ -108,6 +108,10 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
 			throw new RuntimeException(message, error);
 		}
     }
+    
+    public FileProxy getFile() {
+    	return m_file;
+    }
 
     @Override
     public void rotate(RotationPolicy policy, Instant instant) {
