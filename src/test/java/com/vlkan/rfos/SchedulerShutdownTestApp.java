@@ -40,9 +40,6 @@ public enum SchedulerShutdownTestApp {;
     private static final Logger LOGGER = LoggerFactory.getLogger(SchedulerShutdownTestApp.class);
 
     private static final class DelayedRotationPolicy extends TimeBasedRotationPolicy {
-
-        private static final Logger LOGGER = LoggerFactory.getLogger(DelayedRotationPolicy.class);
-
         private final Queue<Duration> delays;
 
         private DelayedRotationPolicy(Long... delays) {
@@ -59,12 +56,6 @@ public enum SchedulerShutdownTestApp {;
             LOGGER.info("setting trigger with delay {}", delay);
             return clock.now().plus(delay);
         }
-
-        @Override
-        protected Logger getLogger() {
-            return LOGGER;
-        }
-
     }
 
     public static void main(String[] args) throws IOException {

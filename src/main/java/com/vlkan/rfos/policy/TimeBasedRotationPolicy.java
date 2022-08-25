@@ -16,15 +16,23 @@
 
 package com.vlkan.rfos.policy;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.vlkan.rfos.Clock;
 import com.vlkan.rfos.Rotatable;
 import com.vlkan.rfos.RotationConfig;
-import org.slf4j.Logger;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import utils.LocalDateTimes;
+import utils.LoggerSettable;
 
 /**
  * Base class for implementing periodically triggered time-based policies.
@@ -32,9 +40,9 @@ import java.util.concurrent.TimeUnit;
  * @see DailyRotationPolicy
  * @see WeeklyRotationPolicy
  */
-public abstract class TimeBasedRotationPolicy implements RotationPolicy {
-
+public abstract class TimeBasedRotationPolicy implements RotationPolicy, LoggerSettable {
     private volatile ScheduledFuture<?> scheduledFuture;
+    private Logger m_logger = LoggerFactory.getLogger(getClass());
 
     /**
      * @return {@code false}, always
@@ -61,15 +69,16 @@ public abstract class TimeBasedRotationPolicy implements RotationPolicy {
         Instant currentInstant = clock.now();
         Instant triggerInstant = getTriggerInstant(clock);
         long triggerDelayMillis = Duration.between(currentInstant, triggerInstant).toMillis();
+    	
+        getLogger().debug("setup a trigger {triggerInstant={}}", LocalDateTimes.fromInstant(triggerInstant));
         Runnable task = createTask(rotatable, triggerInstant);
-        this.scheduledFuture = config
-                .getExecutorService()
-                .schedule(task, triggerDelayMillis, TimeUnit.MILLISECONDS);
+        this.scheduledFuture = config.getExecutorService()
+                					.schedule(task, triggerDelayMillis, TimeUnit.MILLISECONDS);
     }
 
     private Runnable createTask(Rotatable rotatable, Instant triggerInstant) {
         return () -> {
-            getLogger().debug("triggering {triggerInstant={}}", triggerInstant);
+            getLogger().debug("rotation started: now={}", LocalDateTimes.fromInstant(triggerInstant));
             rotatable.rotate(TimeBasedRotationPolicy.this, triggerInstant);
             start(rotatable);
         };
@@ -82,16 +91,21 @@ public abstract class TimeBasedRotationPolicy implements RotationPolicy {
         }
     }
 
+	@Override
+	public Logger getLogger() {
+		return m_logger;
+	}
+
+	@Override
+	public void setLogger(Logger logger) {
+		m_logger = (logger != null) ? logger : LoggerFactory.getLogger(getClass());
+	}
+
     /**
      * @param clock a clock implementation
      *
      * @return the upcoming rotation trigger instant
      */
     abstract public Instant getTriggerInstant(Clock clock);
-
-    /**
-     * @return the logger used
-     */
-    abstract protected Logger getLogger();
 
 }

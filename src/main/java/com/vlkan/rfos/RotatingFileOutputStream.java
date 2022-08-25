@@ -38,6 +38,7 @@ import com.vlkan.rfos.policy.RotationPolicy;
 import com.vlkan.rfos.policy.SizeBasedRotationPolicy;
 import com.vlkan.rfos.policy.WeeklyRotationPolicy;
 
+import utils.LoggerSettable;
 import utils.io.FileProxy;
 
 /**
@@ -57,7 +58,7 @@ import utils.io.FileProxy;
  * @see WeeklyRotationPolicy
  * @see SizeBasedRotationPolicy
  */
-public class RotatingFileOutputStream extends OutputStream implements Rotatable {
+public class RotatingFileOutputStream extends OutputStream implements Rotatable, LoggerSettable {
     private static final Logger LOGGER = LoggerFactory.getLogger(RotatingFileOutputStream.class);
 
     protected final FileProxy m_file;
@@ -65,6 +66,7 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
     private final List<RotationCallback> callbacks;
     private final List<RotationPolicy> writeSensitivePolicies;
     private volatile ByteCountingOutputStream stream;
+    private volatile Logger m_logger = LOGGER;
 
     /**
      * Constructs an instance using the given configuration
@@ -78,6 +80,8 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
         this.writeSensitivePolicies = collectWriteSensitivePolicies(config.getPolicies());
         this.stream = open(null, config.getClock().now());
         startPolicies();
+        
+        setLogger(LOGGER);
     }
 
     private static List<RotationPolicy> collectWriteSensitivePolicies(Set<RotationPolicy> policies) {
@@ -136,42 +140,48 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
 
 		// Skip rotation if the file is empty.
 		stream.flush();
-		if ( m_file.length() == 0 ) {
-			LOGGER.debug("empty file, skipping rotation {file={}}", m_file);
-			return;
-		}
 
-		// Close the file. (Required before rename on Windows!)
+		// Close the file. (Required before rename on Windows!, before get-length on HDFS!)
 		invokeCallbacks(callback -> callback.onClose(policy, instant, stream));
 		stream.close();
+		
+		if ( m_file.length() > 0 ) {
+			// Backup file, if enabled.
+			FileProxy rotatedFile;
+			if ( m_config.getMaxBackupCount() > 0 ) {
+				renameBackups();
+				rotatedFile = backupFile();
+			}
 
-		// Backup file, if enabled.
-		FileProxy rotatedFile;
-		if ( m_config.getMaxBackupCount() > 0 ) {
-			renameBackups();
-			rotatedFile = backupFile();
+			// Otherwise, rename using the provided file pattern.
+			else {
+				String rotatedFilePath = m_config.getFilePattern().create(instant);
+				rotatedFile = m_file.proxy(rotatedFilePath);
+				getLogger().debug("renaming {file={}, ro tatedFile={}}", m_file, rotatedFile);
+				m_file.renameTo(rotatedFile, true);
+			}
+			
+			// Re-open the file.
+ 			getLogger().debug("re-opening file {file={}}", m_file);
+			stream = open(policy, instant);
+
+			// Compress the old file, if necessary.
+			if ( m_config.isCompress() ) {
+				asyncCompress(policy, instant, rotatedFile);
+				return;
+			}
+
+			// So far, so good;
+			invokeCallbacks(callback -> callback.onSuccess(policy, instant, rotatedFile));
 		}
-
-		// Otherwise, rename using the provided file pattern.
 		else {
-			String rotatedFilePath = m_config.getFilePattern().create(instant);
-			rotatedFile = m_file.proxy(rotatedFilePath);
-			LOGGER.debug("renaming {file={}, rotatedFile={}}", m_file, rotatedFile);
-			m_file.renameTo(rotatedFile, true);
+			getLogger().info("empty file, skipping rotation: file={}", m_file);
+			m_file.delete();
+			
+			// Re-open the file.
+			getLogger().debug("re-opening file {file={}}", m_file);
+			stream = open(policy, instant);
 		}
-
-		// Re-open the file.
-		LOGGER.debug("re-opening file {file={}}", m_file);
-		stream = open(policy, instant);
-
-		// Compress the old file, if necessary.
-		if ( m_config.isCompress() ) {
-			asyncCompress(policy, instant, rotatedFile);
-			return;
-		}
-
-		// So far, so good;
-		invokeCallbacks(callback -> callback.onSuccess(policy, instant, rotatedFile));
     }
 
     private void renameBackups() throws IOException {
@@ -179,7 +189,7 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
 		for ( int backupIndex = m_config.getMaxBackupCount() - 2; backupIndex >= 0; backupIndex-- ) {
 			FileProxy srcFile = getBackupFile(backupIndex);
 			if ( srcFile.exists() ) {
-				LOGGER.debug("renaming backup {srcFile={}, dstFile={}}", srcFile, dstFile);
+				getLogger().debug("renaming backup {srcFile={}, dstFile={}}", srcFile, dstFile);
 				srcFile.renameTo(dstFile, true);
 			}
 			dstFile = srcFile;
@@ -188,7 +198,7 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
 
     private FileProxy backupFile() throws IOException {
     	FileProxy dstFile = getBackupFile(0);
-        LOGGER.debug("renaming for backup {srcFile={}, dstFile={}}", m_file, dstFile);
+        getLogger().debug("renaming for backup {srcFile={}, dstFile={}}", m_file, dstFile);
         m_file.renameTo(dstFile, true);
         return dstFile;
     }
@@ -348,6 +358,16 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable 
             throw new IOException("either closed or not initialized yet");
         }
     }
+
+	@Override
+	public Logger getLogger() {
+		return m_logger;
+	}
+
+	@Override
+	public void setLogger(Logger logger) {
+		m_logger = (logger != null) ? logger : LOGGER;
+	}
 
     @Override
     public String toString() {

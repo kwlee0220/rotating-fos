@@ -16,19 +16,14 @@
 
 package com.vlkan.rfos.policy;
 
-import com.vlkan.rfos.Clock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.time.Instant;
+
+import com.vlkan.rfos.Clock;
 
 /**
  * Policy for triggering a rotation at Sunday midnight every day.
  */
 public class WeeklyRotationPolicy extends TimeBasedRotationPolicy {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(WeeklyRotationPolicy.class);
-
     private static final WeeklyRotationPolicy INSTANCE = new WeeklyRotationPolicy();
 
     private WeeklyRotationPolicy() {
@@ -48,11 +43,6 @@ public class WeeklyRotationPolicy extends TimeBasedRotationPolicy {
     @Override
     public Instant getTriggerInstant(Clock clock) {
         return clock.sundayMidnight();
-    }
-
-    @Override
-    protected Logger getLogger() {
-        return LOGGER;
     }
 
     @Override
