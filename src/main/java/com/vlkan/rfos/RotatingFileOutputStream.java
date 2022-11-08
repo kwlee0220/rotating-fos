@@ -38,8 +38,9 @@ import com.vlkan.rfos.policy.RotationPolicy;
 import com.vlkan.rfos.policy.SizeBasedRotationPolicy;
 import com.vlkan.rfos.policy.WeeklyRotationPolicy;
 
+import jarvey.FilePath;
+
 import utils.LoggerSettable;
-import utils.io.FileProxy;
 
 /**
  * A thread-safe {@link OutputStream} targeting a file where rotation of the
@@ -61,7 +62,7 @@ import utils.io.FileProxy;
 public class RotatingFileOutputStream extends OutputStream implements Rotatable, LoggerSettable {
     private static final Logger LOGGER = LoggerFactory.getLogger(RotatingFileOutputStream.class);
 
-    protected final FileProxy m_file;
+    protected final FilePath m_file;
     protected final RotationConfig m_config;
     private final List<RotationCallback> callbacks;
     private final List<RotationPolicy> writeSensitivePolicies;
@@ -73,7 +74,7 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable,
      *
      * @param config a configuration instance
      */
-    public RotatingFileOutputStream(FileProxy file, RotationConfig config) {
+    public RotatingFileOutputStream(FilePath file, RotationConfig config) {
     	m_file = file;
         this.m_config = Objects.requireNonNull(config, "config");
         this.callbacks = new ArrayList<>(config.getCallbacks());
@@ -102,9 +103,9 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable,
 
     protected ByteCountingOutputStream open(RotationPolicy policy, Instant instant) {
 		try {
-			OutputStream os = m_file.openOutputStream(m_config.isAppend());
+			OutputStream os = m_config.isAppend() ? m_file.append() : m_file.create(true);
 			invokeCallbacks(callback -> callback.onOpen(policy, instant, os));
-			long size = m_config.isAppend() ? m_file.length() : 0;
+			long size = m_config.isAppend() ? m_file.getLength() : 0;
 			return new ByteCountingOutputStream(os, size);
 		}
 		catch ( IOException error ) {
@@ -113,7 +114,7 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable,
 		}
     }
     
-    public FileProxy getFile() {
+    public FilePath getFile() {
     	return m_file;
     }
 
@@ -145,9 +146,9 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable,
 		invokeCallbacks(callback -> callback.onClose(policy, instant, stream));
 		stream.close();
 		
-		if ( m_file.length() > 0 ) {
+		if ( m_file.getLength() > 0 ) {
 			// Backup file, if enabled.
-			FileProxy rotatedFile;
+			FilePath rotatedFile;
 			if ( m_config.getMaxBackupCount() > 0 ) {
 				renameBackups();
 				rotatedFile = backupFile();
@@ -156,7 +157,7 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable,
 			// Otherwise, rename using the provided file pattern.
 			else {
 				String rotatedFilePath = m_config.getFilePattern().create(instant);
-				rotatedFile = m_file.proxy(rotatedFilePath);
+				rotatedFile = m_file.path(rotatedFilePath);
 				getLogger().debug("renaming {file={}, ro tatedFile={}}", m_file, rotatedFile);
 				m_file.renameTo(rotatedFile, true);
 			}
@@ -185,9 +186,9 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable,
     }
 
     private void renameBackups() throws IOException {
-    	FileProxy dstFile = getBackupFile(m_config.getMaxBackupCount() - 1);
+    	FilePath dstFile = getBackupFile(m_config.getMaxBackupCount() - 1);
 		for ( int backupIndex = m_config.getMaxBackupCount() - 2; backupIndex >= 0; backupIndex-- ) {
-			FileProxy srcFile = getBackupFile(backupIndex);
+			FilePath srcFile = getBackupFile(backupIndex);
 			if ( srcFile.exists() ) {
 				getLogger().debug("renaming backup {srcFile={}, dstFile={}}", srcFile, dstFile);
 				srcFile.renameTo(dstFile, true);
@@ -196,8 +197,8 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable,
 		}
     }
 
-    private FileProxy backupFile() throws IOException {
-    	FileProxy dstFile = getBackupFile(0);
+    private FilePath backupFile() throws IOException {
+    	FilePath dstFile = getBackupFile(0);
         getLogger().debug("renaming for backup {srcFile={}, dstFile={}}", m_file, dstFile);
         m_file.renameTo(dstFile, true);
         return dstFile;
@@ -212,25 +213,25 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable,
                 StandardCopyOption.COPY_ATTRIBUTES*/);      // option" exception at runtime.
     }
 
-    private FileProxy getBackupFile(int backupIndex) {
+    private FilePath getBackupFile(int backupIndex) {
 		String backupFileName = m_file.getName() + '.' + backupIndex;
-		FileProxy parent = m_file.getParent();
+		FilePath parent = m_file.getParent();
         if ( parent != null ) {
         	return parent.getChild(backupFileName);
         }
         else {
-        	return m_file.proxy(backupFileName);
+        	return m_file.path(backupFileName);
         }
     }
 
-    private void asyncCompress(RotationPolicy policy, Instant instant, FileProxy rotatedFile) {
+    private void asyncCompress(RotationPolicy policy, Instant instant, FilePath rotatedFile) {
 		m_config.getExecutorService().execute(new Runnable() {
 			private final String displayName
 				= String.format("%s.compress(%s)", getClass().getSimpleName(), rotatedFile);
 
 			@Override
 			public void run() {
-				FileProxy compressedFile = getCompressedFile(rotatedFile);
+				FilePath compressedFile = getCompressedFile(rotatedFile);
 				try {
 					unsafeSyncCompress(rotatedFile, compressedFile);
 					invokeCallbacks(callback -> callback.onSuccess(policy, instant, compressedFile));
@@ -251,16 +252,16 @@ public class RotatingFileOutputStream extends OutputStream implements Rotatable,
 		});
     }
 
-    private FileProxy getCompressedFile(FileProxy rotatedFile) {
+    private FilePath getCompressedFile(FilePath rotatedFile) {
         String compressedFileName = String.format("%s.gz", rotatedFile.getAbsolutePath());
-        return m_file.proxy(compressedFileName);
+        return m_file.path(compressedFileName);
     }
 
-    private static void unsafeSyncCompress(FileProxy rotatedFile, FileProxy compressedFile) throws IOException {
+    private static void unsafeSyncCompress(FilePath rotatedFile, FilePath compressedFile) throws IOException {
 		// Compress the file.
 		LOGGER.debug("compressing {rotatedFile={}, compressedFile={}}", rotatedFile, compressedFile);
-		try ( InputStream sourceStream = rotatedFile.openInputStream() ) {
-			try ( OutputStream targetStream = compressedFile.openOutputStream(false); 
+		try ( InputStream sourceStream = rotatedFile.read() ) {
+			try ( OutputStream targetStream = compressedFile.create(true); 
 					GZIPOutputStream gzipTargetStream = new GZIPOutputStream(targetStream) ) {
 				copy(sourceStream, gzipTargetStream);
 			}

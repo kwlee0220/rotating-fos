@@ -21,7 +21,7 @@ import java.time.Instant;
 
 import com.vlkan.rfos.policy.RotationPolicy;
 
-import utils.io.FileProxy;
+import jarvey.FilePath;
 
 /**
  * Callback intercepting {@link RotatingFileOutputStream} operations.
@@ -77,9 +77,9 @@ public interface RotationCallback {
      * @param policy    the triggering policy; {@code null}, if the rotation is
      *                  manually triggered
      * @param instant   the trigger instant
-     * @param file      the rotated file
+     * @param path      the rotated file
      */
-    void onSuccess(RotationPolicy policy, Instant instant, FileProxy file);
+    void onSuccess(RotationPolicy policy, Instant instant, FilePath path);
 
     /**
      * Invoked by {@link RotatingFileOutputStream} after a failed rotation
@@ -89,9 +89,9 @@ public interface RotationCallback {
      * @param policy    the triggering policy, if there is one; otherwise,
      *                  {@code null}
      * @param instant   the trigger instant
-     * @param file      the rotated file
+     * @param path      the rotated file
      * @param error     the failure
      */
-    void onFailure(RotationPolicy policy, Instant instant, FileProxy file, Exception error);
+    void onFailure(RotationPolicy policy, Instant instant, FilePath path, Exception error);
 
 }

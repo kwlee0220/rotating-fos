@@ -29,7 +29,7 @@ import java.util.Map;
 import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.Test;
 
-import utils.io.LocalFile;
+import jarvey.LfsPath;
 
 class RotatingFilePatternTest {
 
@@ -86,7 +86,7 @@ class RotatingFilePatternTest {
 					                    .timeZoneId(UtcHelper.ZONE_ID)
 					                    .build()
 					                    .create(instant);
-            File actualFile = LocalFile.of(actualFilePath).getFile();
+            File actualFile = LfsPath.of(actualFilePath).getFile();
             assertThat(actualFile).as("pattern=%s", pattern).isEqualTo(expectedFile);
         }
     }

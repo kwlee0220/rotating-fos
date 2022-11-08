@@ -49,7 +49,7 @@ import com.vlkan.rfos.policy.RotationPolicy;
 import com.vlkan.rfos.policy.SizeBasedRotationPolicy;
 import com.vlkan.rfos.policy.WeeklyRotationPolicy;
 
-import utils.io.LocalFile;
+import jarvey.LfsPath;
 
 class RotatingFileOutputStreamTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(RotatingFileOutputStreamTest.class);
@@ -81,12 +81,12 @@ class RotatingFileOutputStreamTest {
     private void test_write_insensitive_policy(boolean compress) throws Exception {
         // Determine file names.
         String fileNamePrefix = "writeInsensitivePolicy-compress-" + String.valueOf(compress).toLowerCase();
-        LocalFile file = LocalFile.of(new File(m_tmpDir, fileNamePrefix + ".log"));
+        LfsPath file = LfsPath.of(new File(m_tmpDir, fileNamePrefix + ".log"));
         String fileName = file.getAbsolutePath();
         String fileNamePattern = new File(m_tmpDir, fileNamePrefix + "-%d{yyyy}.log").getAbsolutePath();
         String rotatedFileNameSuffix = compress ? ".gz" : "";
         Instant now = Instant.now();
-        LocalFile rotatedFile = LocalFile.of(
+        LfsPath rotatedFile = LfsPath.of(
                 fileNamePattern.replace(
                         "%d{yyyy}",
                         String.valueOf(now.atZone(UtcHelper.ZONE_ID).getYear()))
@@ -164,12 +164,12 @@ class RotatingFileOutputStreamTest {
                         Mockito.same(policy),
                         Mockito.same(now),
                         Mockito.eq(rotatedFile));
-        long rotatedFileLength = rotatedFile.length();
+        long rotatedFileLength = rotatedFile.getLength();
         int expectedRotatedFileLength = compress
                 ? findCompressedLength(payload)
                 : payload.length;
         Assertions.assertThat(rotatedFileLength).isEqualTo(expectedRotatedFileLength);
-        Assertions.assertThat(file.length()).isEqualTo(0);
+        Assertions.assertThat(file.getLength()).isEqualTo(0);
 
         // Verify the stream close and the policy shutdown. (We cannot use
         // InOrder here since we don't know whether the rotation background task
@@ -205,7 +205,7 @@ class RotatingFileOutputStreamTest {
         File file = new File(m_tmpDir, fileNamePrefix + ".log");
         String fileName = file.getAbsolutePath();
         String fileNamePattern = new File(m_tmpDir, fileNamePrefix + "-%d{yyyy}.log").getAbsolutePath();
-        LocalFile rotatedFile = LocalFile.of(fileNamePattern.replace("%d{yyyy}", String.valueOf(Calendar.getInstance().get(Calendar.YEAR))));
+        LfsPath rotatedFile = LfsPath.of(fileNamePattern.replace("%d{yyyy}", String.valueOf(Calendar.getInstance().get(Calendar.YEAR))));
 
         // Create the stream.
         int maxByteCount = 1024;
@@ -219,7 +219,7 @@ class RotatingFileOutputStreamTest {
                 .policy(policy)
                 .callbacks(Collections.singleton(callback))
                 .build();
-        RotatingFileOutputStream stream = new RotatingFileOutputStream(LocalFile.of(file), config);
+        RotatingFileOutputStream stream = new RotatingFileOutputStream(LfsPath.of(file), config);
 
         // Verify the initial file open.
         callbackInOrder
@@ -274,7 +274,7 @@ class RotatingFileOutputStreamTest {
                         Mockito.same(policy),
                         Mockito.any(Instant.class),
                         Mockito.eq(rotatedFile));
-        Assertions.assertThat(rotatedFile.length()).isEqualTo(maxByteCount);
+        Assertions.assertThat(rotatedFile.getLength()).isEqualTo(maxByteCount);
         Assertions.assertThat(file.length()).isEqualTo(1);
 
         // Verify no more callback interactions.
@@ -288,7 +288,7 @@ class RotatingFileOutputStreamTest {
     void test_empty_files_are_not_rotated() throws Exception {
         // Determine file names.
         String className = RotatingFileOutputStream.class.getSimpleName();
-        LocalFile file = LocalFile.of(new File(m_tmpDir, className + ".log"));
+        LfsPath file = LfsPath.of(new File(m_tmpDir, className + ".log"));
         String fileName = file.getAbsolutePath();
         String fileNamePattern = new File(m_tmpDir, className + "-%d{yyyy}.log").getAbsolutePath();
 
@@ -323,7 +323,7 @@ class RotatingFileOutputStreamTest {
         }
         stream.write(payload);
         stream.flush();
-        Assertions.assertThat(file.length()).isEqualTo(payload.length);
+        Assertions.assertThat(file.getLength()).isEqualTo(payload.length);
 
         // Verify the rotation trigger.
         callbackInOrder
@@ -341,10 +341,10 @@ class RotatingFileOutputStreamTest {
     void test_adding_file_header() throws IOException {
         // Determine file names.
         String className = RotatingFileOutputStream.class.getSimpleName();
-        LocalFile file = LocalFile.of(new File(m_tmpDir, className + ".log"));
+        LfsPath file = LfsPath.of(new File(m_tmpDir, className + ".log"));
         String fileName = file.getAbsolutePath();
         String fileNamePattern = new File(m_tmpDir, className + "-%d{yyyy}.log").getAbsolutePath();
-        LocalFile rotatedFile = LocalFile.of(fileNamePattern.replace("%d{yyyy}", String.valueOf(Calendar.getInstance().get(Calendar.YEAR))));
+        LfsPath rotatedFile = LfsPath.of(fileNamePattern.replace("%d{yyyy}", String.valueOf(Calendar.getInstance().get(Calendar.YEAR))));
 
         // Create the stream config.
         int maxByteCount = 1024;
@@ -470,7 +470,7 @@ class RotatingFileOutputStreamTest {
                         Mockito.any(OutputStream.class));
 
         // Verify the rotated file.
-        long rotatedFileLength = rotatedFile.length();
+        long rotatedFileLength = rotatedFile.getLength();
         int expectedRotatedFileLength = header1.length + payload1.length + footer1.length;
         Assertions.assertThat(rotatedFileLength).isEqualTo(expectedRotatedFileLength);
         byte[] rotatedFileBytes = readFileBytes(rotatedFile.getFile(), expectedRotatedFileLength);
@@ -478,7 +478,7 @@ class RotatingFileOutputStreamTest {
         Assertions.assertThat(rotatedFileBytes).isEqualTo(expectedRotatedFileBytes);
 
         // Verify the re-opened file.
-        long reopenedFileLength = file.length();
+        long reopenedFileLength = file.getLength();
         int expectedReopenedFileLength = header2.length + payload2.length + footer2.length;
         Assertions.assertThat(reopenedFileLength).isEqualTo(expectedReopenedFileLength);
         byte[] reopenedFileBytes = readFileBytes(file.getFile(), Math.toIntExact(reopenedFileLength));
@@ -562,7 +562,7 @@ class RotatingFileOutputStreamTest {
         RotationCallback callback = Mockito.mock(RotationCallback.class);
 
         // Create the stream.
-        LocalFile file = LocalFile.of(new File(m_tmpDir, "maxBackupCount.log"));
+        LfsPath file = LfsPath.of(new File(m_tmpDir, "maxBackupCount.log"));
         RotationConfig config = RotationConfig
                 .builder()
                 .executorService(executorService)
@@ -573,10 +573,10 @@ class RotatingFileOutputStreamTest {
         RotatingFileOutputStream stream = new RotatingFileOutputStream(file, config);
 
         // Determine the backup files.
-        LocalFile backupFile0 = LocalFile.of(new File(m_tmpDir, "maxBackupCount.log.0"));
-        LocalFile backupFile1 = LocalFile.of(new File(m_tmpDir, "maxBackupCount.log.1"));
-        LocalFile backupFile2 = LocalFile.of(new File(m_tmpDir, "maxBackupCount.log.2"));
-        LocalFile backupFile3 = LocalFile.of(new File(m_tmpDir, "maxBackupCount.log.3"));
+        LfsPath backupFile0 = LfsPath.of(new File(m_tmpDir, "maxBackupCount.log.0"));
+        LfsPath backupFile1 = LfsPath.of(new File(m_tmpDir, "maxBackupCount.log.1"));
+        LfsPath backupFile2 = LfsPath.of(new File(m_tmpDir, "maxBackupCount.log.2"));
+        LfsPath backupFile3 = LfsPath.of(new File(m_tmpDir, "maxBackupCount.log.3"));
 
         // Write some without triggering rotation.
         byte[] content1 = {'1'};
@@ -699,7 +699,7 @@ class RotatingFileOutputStreamTest {
     void test_rotation_and_write_failure_after_close() throws Exception {
         // Determine file names.
         String fileNamePrefix = "rotationAndWriteFailureAfterClose";
-        LocalFile file = LocalFile.of(new File(m_tmpDir, fileNamePrefix + ".log"));
+        LfsPath file = LfsPath.of(new File(m_tmpDir, fileNamePrefix + ".log"));
         String fileName = file.getAbsolutePath();
         String fileNamePattern = new File(m_tmpDir, fileNamePrefix + "-%d{HHmmss-SSS}.log").getAbsolutePath();
 
@@ -770,7 +770,7 @@ class RotatingFileOutputStreamTest {
     void test_time_based_policies_are_stopped_after_close() throws Exception {
         // Determine file names.
         String fileNamePrefix = "timeBasedPoliciesAfterClose";
-        LocalFile file = LocalFile.of(new File(m_tmpDir, fileNamePrefix + ".log"));
+        LfsPath file = LfsPath.of(new File(m_tmpDir, fileNamePrefix + ".log"));
         String fileName = file.getAbsolutePath();
         String fileNamePattern = new File(m_tmpDir, fileNamePrefix + "-%d{HHmmss-SSS}.log").getAbsolutePath();
 

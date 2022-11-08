@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import com.vlkan.rfos.policy.TimeBasedRotationPolicy;
 
-import utils.io.LocalFile;
+import jarvey.LfsPath;
 
 public enum SchedulerShutdownTestApp {;
 
@@ -66,7 +66,7 @@ public enum SchedulerShutdownTestApp {;
                         + "-"
                         + SchedulerShutdownTestApp.class.getSimpleName();
         File tmpDir = new File(System.getProperty("java.io.tmpdir"));
-        LocalFile file = LocalFile.of(new File(tmpDir, filePrefix + ".log"));
+        LfsPath file = LfsPath.of(new File(tmpDir, filePrefix + ".log"));
         String fileName = file.getAbsolutePath();
         String fileNamePattern = new File(tmpDir, filePrefix + "-%d{yyyy}.log").getAbsolutePath();
 

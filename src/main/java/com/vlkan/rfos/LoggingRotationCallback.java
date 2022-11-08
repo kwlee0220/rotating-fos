@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.vlkan.rfos.policy.RotationPolicy;
 
-import utils.io.FileProxy;
+import jarvey.FilePath;
 
 /**
  * Callback logging every intercepted operation.
@@ -59,13 +59,13 @@ public class LoggingRotationCallback implements RotationCallback {
     }
 
     @Override
-    public void onSuccess(RotationPolicy policy, Instant instant, FileProxy file) {
-        LOGGER.debug("rotation success {policy={}, instant={}, file={}}", policy, instant, file);
+    public void onSuccess(RotationPolicy policy, Instant instant, FilePath path) {
+        LOGGER.debug("rotation success {policy={}, instant={}, file={}}", policy, instant, path);
     }
 
     @Override
-    public void onFailure(RotationPolicy policy, Instant instant, FileProxy file, Exception error) {
-        String message = String.format("rotation failure {policy=%s, instant=%s, file=%s}", policy, instant, file);
+    public void onFailure(RotationPolicy policy, Instant instant, FilePath path, Exception error) {
+        String message = String.format("rotation failure {policy=%s, instant=%s, file=%s}", policy, instant, path);
         LOGGER.error(message, error);
     }
 

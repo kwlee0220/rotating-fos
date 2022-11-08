@@ -20,7 +20,7 @@ repositories {
 }
 
 dependencies {
-	api project(":utils")
+	api project(":jarvey.common")
 	
 	implementation "org.slf4j:slf4j-api:${slf4j_version}"
 	
