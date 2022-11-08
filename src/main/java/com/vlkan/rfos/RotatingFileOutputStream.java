@@ -38,9 +38,8 @@ import com.vlkan.rfos.policy.RotationPolicy;
 import com.vlkan.rfos.policy.SizeBasedRotationPolicy;
 import com.vlkan.rfos.policy.WeeklyRotationPolicy;
 
-import jarvey.FilePath;
-
 import utils.LoggerSettable;
+import utils.io.FilePath;
 
 /**
  * A thread-safe {@link OutputStream} targeting a file where rotation of the

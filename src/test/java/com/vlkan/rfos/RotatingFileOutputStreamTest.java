@@ -49,7 +49,7 @@ import com.vlkan.rfos.policy.RotationPolicy;
 import com.vlkan.rfos.policy.SizeBasedRotationPolicy;
 import com.vlkan.rfos.policy.WeeklyRotationPolicy;
 
-import jarvey.LfsPath;
+import utils.io.LfsPath;
 
 class RotatingFileOutputStreamTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(RotatingFileOutputStreamTest.class);

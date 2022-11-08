@@ -21,7 +21,7 @@ import java.time.Instant;
 
 import com.vlkan.rfos.policy.RotationPolicy;
 
-import jarvey.FilePath;
+import utils.io.FilePath;
 
 /**
  * Callback intercepting {@link RotatingFileOutputStream} operations.

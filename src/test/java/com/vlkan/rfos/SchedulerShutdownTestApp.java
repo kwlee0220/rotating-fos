@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import com.vlkan.rfos.policy.TimeBasedRotationPolicy;
 
-import jarvey.LfsPath;
+import utils.io.LfsPath;
 
 public enum SchedulerShutdownTestApp {;
 

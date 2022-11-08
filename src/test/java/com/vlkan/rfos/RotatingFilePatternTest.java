@@ -29,7 +29,7 @@ import java.util.Map;
 import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.Test;
 
-import jarvey.LfsPath;
+import utils.io.LfsPath;
 
 class RotatingFilePatternTest {
 

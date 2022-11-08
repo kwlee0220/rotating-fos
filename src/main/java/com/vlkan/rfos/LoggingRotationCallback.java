@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.vlkan.rfos.policy.RotationPolicy;
 
-import jarvey.FilePath;
+import utils.io.FilePath;
 
 /**
  * Callback logging every intercepted operation.
