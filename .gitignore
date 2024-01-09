@@ -12,6 +12,8 @@
 hs_err_pid*
 *.swp
 
+.mvn/
+
 /classes/
 /build/
 /.classpath
