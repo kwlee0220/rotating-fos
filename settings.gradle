@@ -1,14 +1,14 @@
 rootProject.name = 'rotating-fos'
 
 ext.common_dir = '../../common'
-['utils', 'utils.geo'].each {
+['utils'].each {
 	include ":$it"
 	project(":$it").projectDir = file("$common_dir/$it")
 }
 
 
-ext.jarvey_dir = '../../jarvey'
-['jarvey.common'].each {
-	include ":$it"
-	project(":$it").projectDir = file("${jarvey_dir}/$it")
-}
+//ext.jarvey_dir = '../../jarvey'
+//['jarvey.common'].each {
+//	include ":$it"
+//	project(":$it").projectDir = file("${jarvey_dir}/$it")
+//}
